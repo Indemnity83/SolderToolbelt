@@ -19,7 +19,7 @@
         }
     },
     "bin": [
-        "modpack"
+        "mcmod"
     ],
     "minimum-stability": "stable"
 }
