@@ -1,0 +1,25 @@
+{
+    "name": "indemnity83/mcmod",
+    "description": "A tool for working with minecraft mod files",
+    "require": {
+        "php": ">=5.5",
+        "symfony/console": "~2.0",
+        "symfony/process": "~2.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Kyle Klaus",
+            "email": "indemnity83@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Indemnity83\\ModPack\\": "src/"
+        }
+    },
+    "bin": [
+        "modpack"
+    ],
+    "minimum-stability": "stable"
+}

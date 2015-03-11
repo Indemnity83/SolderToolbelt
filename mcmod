@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+if (file_exists(__DIR__.'/vendor/autoload.php'))
+{
+	require __DIR__.'/vendor/autoload.php';
+}
+else
+{
+	require __DIR__.'/../../autoload.php';
+}
+function bakery_path()
+{
+	if (isset($_SERVER['HOME']))
+	{
+		return $_SERVER['HOME'].'/.bakery';
+	}
+	else
+	{
+		return $_SERVER['HOMEDRIVE'].$_SERVER['HOMEPATH'].'.bakery';
+	}
+}
+$app = new Symfony\Component\Console\Application('ModPack', '0.0.1');
+$app->add(new Indemnity83\ModPack\Info);
+$app->add(new Indemnity83\ModPack\Pack);
+$app->run();
