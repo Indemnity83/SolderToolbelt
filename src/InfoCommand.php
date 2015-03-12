@@ -1,4 +1,4 @@
-<?php namespace Indemnity83\ModPack;
+<?php namespace Indemnity83\SolderToolbelt;
 
 use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Command\Command;
@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 
-class Info extends Command {
+class InfoCommand extends Command {
 	/**
 	 * Configure the command options.
 	 *

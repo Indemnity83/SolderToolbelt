@@ -1,4 +1,4 @@
-<?php namespace Indemnity83\ModPack;
+<?php namespace Indemnity83\SolderToolbelt;
 
 setlocale(LC_ALL, 'en_US.UTF8');
 

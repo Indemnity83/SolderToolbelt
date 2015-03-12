@@ -1,4 +1,4 @@
-<?php namespace Indemnity83\ModPack;
+<?php namespace Indemnity83\SolderToolbelt;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 
-class Pack extends Command {
+class PackCommand extends Command {
 	/**
 	 * Configure the command options.
 	 *

@@ -1,0 +1,43 @@
+#!/usr/bin/env php
+<?php
+
+if (file_exists(__DIR__.'/vendor/autoload.php'))
+{
+	require __DIR__.'/vendor/autoload.php';
+}
+else
+{
+	require __DIR__.'/../../autoload.php';
+}
+
+function solder_path()
+{
+	if (isset($_SERVER['HOME']))
+	{
+		return $_SERVER['HOME'].'/.solder-toolbelt';
+	}
+	else
+	{
+		return $_SERVER['HOMEDRIVE'].$_SERVER['HOMEPATH'].'.solder-toolbelt';
+	}
+}
+
+function solder_config()
+{
+	if( !is_file(solder_path().'/Solder.json') ) {
+		throw new \InvalidArgumentException("Solder has not been initialized.");
+	}
+
+	return json_decode(file_get_contents(solder_path().'/Solder.json'));
+}
+
+$app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
+
+$app->add(new Indemnity83\SolderToolbelt\EditCommand);
+$app->add(new Indemnity83\SolderToolbelt\InfoCommand);
+$app->add(new Indemnity83\SolderToolbelt\InitCommand);
+$app->add(new Indemnity83\SolderToolbelt\ModCommand);
+$app->add(new Indemnity83\SolderToolbelt\ModpackCommand);
+$app->add(new Indemnity83\SolderToolbelt\PackCommand);
+
+$app->run();
