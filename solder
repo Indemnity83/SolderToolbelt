@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+use Symfony\Component\Console\Helper\ProgressBar;
+
 if (file_exists(__DIR__.'/vendor/autoload.php'))
 {
 	require __DIR__.'/vendor/autoload.php';
@@ -29,6 +31,62 @@ function solder_config()
 	}
 
 	return json_decode(file_get_contents(solder_path().'/Solder.json'));
+}
+
+function downloadFile($srcName, $dstName, $output, $md5 = false, $chunkSize = 1024)
+{
+	$host = parse_url($srcName);
+	$host = $host['scheme'] . '://' . $host['host'];
+
+	$output->write("Connecting to $host... ");
+	$head = array_change_key_case(get_headers($srcName, TRUE));
+	if (($handle = fopen($srcName, 'rb')) === false) {
+		throw new \Exception('Cannot open remote file');
+	}
+	$output->writeln($head[0]);
+
+	$filesize = $head['content-length'];
+	$humanFilesize = human_filesize($filesize, 1);
+	$output->writeln("Length: $filesize ($humanFilesize) [{$head['content-type']}]");
+
+	$output->writeln("Saving to: `$dstName`");
+	if (($fp = fopen($dstName, 'w')) === false) {
+		throw new \Exception('Cannot write to local file');
+	}
+
+	$output->writeln('');
+	$progress = new ProgressBar($output, $filesize);
+	$progress->start();
+	$bytesCount = 0;
+	while (!feof($handle)) {
+		$data = fread($handle, $chunkSize);
+		fwrite($fp, $data, strlen($data));
+		$bytesCount += strlen($data);
+		$progress->setProgress($bytesCount);
+	}
+	$progress->finish();
+	$output->writeln('');
+	$output->writeln('');
+
+	$hash = md5_file($dstName);
+
+	$checksum = '';
+	if( $md5 ) {
+		$checksum = ($md5 == $hash ? 'OK' : 'FAIL');
+	}
+
+	$output->writeln("$hash `$dstName` saved [$bytesCount/$filesize] $checksum");
+	$output->writeln('');
+
+	fclose($fp);
+	fclose($handle);
+}
+
+function human_filesize($bytes, $decimals = 2)
+{
+	$size = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+	$factor = floor((strlen($bytes) - 1) / 3);
+	return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$size[$factor];
 }
 
 $app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
