@@ -2,12 +2,11 @@
 
 use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Helper\Table;
 
-class InfoCommand extends Command {
+class ConfigCommand extends Command {
+
 	/**
 	 * Configure the command options.
 	 *
@@ -15,11 +14,10 @@ class InfoCommand extends Command {
 	 */
 	protected function configure()
 	{
-		$this
-      ->setName('info')
-      ->setDescription('Show information about a mod file')
-      ->addArgument('mod', InputArgument::REQUIRED);
+		$this->setName('config')
+                  ->setDescription('Edit the Solder.json file');
 	}
+
 	/**
 	 * Execute the command.
 	 *
@@ -29,17 +27,23 @@ class InfoCommand extends Command {
 	 */
 	public function execute(InputInterface $input, OutputInterface $output)
 	{
+		$command = $this->executable().' '.solder_path().'/Solder.json';
+		$process = new Process($command, realpath(__DIR__.'/../'), null, null, null);
 
-    $mod = new ModLib($input->getArgument('mod'));
-
-    $table = new Table($output);
-    $table->setRows(array(
-      array('Mod Name', $mod->name),
-      array('Mod Slug', $mod->slug),
-      array('Mod Version', $mod->version),
-      array('MC Version', $mod->mcversion)
-    ));
-
-    $table->render();
+		$process->run(function($type, $line) use ($output)
+		{
+			$output->write($line);
+		});
 	}
+
+	/**
+	 * Find the correct executable to run depending on the OS.
+	 *
+	 * @return string
+	 */
+	protected function executable()
+	{
+		return strpos(strtoupper(PHP_OS), 'WIN') === 0 ? 'start' : 'open';
+	}
+
 }

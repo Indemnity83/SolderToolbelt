@@ -37,7 +37,7 @@ class InitCommand extends Command {
 		mkdir(solder_path());
 		copy(__DIR__.'/stubs/Solder.json', solder_path().'/Solder.json');
 
-		$output->writeln('<comment>Solder.yaml file created at:</comment> '.solder_path().'/Solder.json');
+		$output->writeln('<comment>Solder.json file created at:</comment> '.solder_path().'/Solder.json');
 	}
 
 }

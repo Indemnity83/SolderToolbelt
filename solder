@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+use GuzzleHttp\Client;
+use Symfony\Component\Console\Helper\ProgressBar;
+
 if (file_exists(__DIR__.'/vendor/autoload.php'))
 {
 	require __DIR__.'/vendor/autoload.php';
@@ -31,13 +34,117 @@ function solder_config()
 	return json_decode(file_get_contents(solder_path().'/Solder.json'));
 }
 
-$app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
+function downloadFile($srcName, $dstName, $output, $md5 = false, $chunkSize = 1024)
+{
+	$host = parse_url($srcName);
+	$host = $host['scheme'] . '://' . $host['host'];
 
-$app->add(new Indemnity83\SolderToolbelt\EditCommand);
-$app->add(new Indemnity83\SolderToolbelt\InfoCommand);
+	$output->write("Connecting to $host... ");
+	$head = array_change_key_case(get_headers($srcName, TRUE));
+	if (($handle = fopen($srcName, 'rb')) === false) {
+		throw new \Exception('Cannot open remote file');
+	}
+	$output->writeln($head[0]);
+
+	$filesize = $head['content-length'];
+	$humanFilesize = human_filesize($filesize, 1);
+	$output->writeln("Length: $filesize ($humanFilesize) [{$head['content-type']}]");
+
+	$output->writeln("Saving to: `$dstName`");
+	if (($fp = fopen($dstName, 'w')) === false) {
+		throw new \Exception('Cannot write to local file');
+	}
+
+	$output->writeln('');
+	$progress = new ProgressBar($output, $filesize);
+	$progress->start();
+	$bytesCount = 0;
+	while (!feof($handle)) {
+		$data = fread($handle, $chunkSize);
+		fwrite($fp, $data, strlen($data));
+		$bytesCount += strlen($data);
+		$progress->setProgress($bytesCount);
+	}
+	$progress->finish();
+	$output->writeln('');
+	$output->writeln('');
+
+	$hash = md5_file($dstName);
+
+	$checksum = '';
+	if( $md5 ) {
+		$checksum = ($md5 == $hash ? 'OK' : 'FAIL');
+	}
+
+	$output->writeln("$hash `$dstName` saved [$bytesCount/$filesize] $checksum");
+
+	fclose($fp);
+	fclose($handle);
+}
+
+function unpackFile($zipFile, $output, $extractTo = false)
+{
+	$zip = new \ZipArchive;
+
+	if( $extractTo == false ) {
+		$extractTo = dirname($zipFile);
+	}
+
+	$output->writeln("unpacking $zipFile to $extractTo");
+
+	$zip->open($zipFile);
+	$zip->extractTo($extractTo);
+	$zip->close();
+	$zip = null;
+
+	unlink($zipFile);
+}
+
+function human_filesize($bytes, $decimals = 2)
+{
+	$size = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+	$factor = floor((strlen($bytes) - 1) / 3);
+	return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$size[$factor];
+}
+
+function slug($str, $replace=array(), $delimiter='-')
+{
+	if( !empty($replace) ) {
+		$str = str_replace((array)$replace, ' ', $str);
+	}
+
+	$clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
+	$clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
+	$clean = strtolower(trim($clean, '-'));
+	$clean = preg_replace("/[\/_|+ -]+/", $delimiter, $clean);
+
+	return $clean;
+}
+
+$app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
+function displayServerInfo($output)
+{
+	$apiClient = new Client();
+	$appConfig = solder_config();
+
+	$technicSolder = $apiClient->get($appConfig->api)->json();
+	if(isset($technicSolder['error'])) {
+		throw new \Exception($technicSolder['error']);
+	}
+
+	$output->writeln('<comment>Server:</comment>');
+	$output->writeln(" <info>{$technicSolder['api']}</info> {$technicSolder['version']}");
+	$output->writeln(" <info>url</info> {$appConfig->api}");
+
+	$apiClient = null;
+	$appConfig = null;
+	$technicSolder = null;
+}
+
+
+$app->add(new Indemnity83\SolderToolbelt\ConfigCommand);
 $app->add(new Indemnity83\SolderToolbelt\InitCommand);
 $app->add(new Indemnity83\SolderToolbelt\ModCommand);
 $app->add(new Indemnity83\SolderToolbelt\ModpackCommand);
-$app->add(new Indemnity83\SolderToolbelt\PackCommand);
 
 $app->run();

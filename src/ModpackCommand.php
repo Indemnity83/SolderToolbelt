@@ -18,140 +18,165 @@ class ModpackCommand extends Command {
 	protected function configure()
 	{
 		$this->setName('modpack')
-         ->setDescription('Work with modpacks on the TechnicSolder site')
-         ->addArgument(
-           'slug',
-           InputArgument::OPTIONAL,
-           'The slug of the modpack you wish to request'
-         )
-         ->addArgument(
-           'build',
-           InputArgument::OPTIONAL,
-           'Specific build you wish to view'
-         );
+			->setDescription('Work with modpacks on the TechnicSolder site')
+			->addArgument(
+				'action',
+				InputArgument::REQUIRED,
+				'info, get'
+			)
+			->addArgument(
+				'slug',
+				InputArgument::OPTIONAL,
+				'The slug of the modpack you wish to request'
+			)
+			->addArgument(
+				'build',
+				InputArgument::OPTIONAL,
+				'Specific build you wish to view'
+			);
 	}
 
 	/**
 	 * Execute the command.
 	 *
-	 * @param  \Symfony\Component\Console\Input\InputInterface  $input
-	 * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+	 * @param	\Symfony\Component\Console\Input\InputInterface	$input
+	 * @param	\Symfony\Component\Console\Output\OutputInterface	$output
 	 * @return void
 	 */
 	public function execute(InputInterface $input, OutputInterface $output)
 	{
-    $client = new Client();
-    $slug = $input->getArgument('slug');
-    $build = $input->getArgument('build');
-    $config = solder_config();
+		$commandAction = $input->getArgument('action');
+		$modpackSlug = $input->getArgument('slug');
+		$modpackBuild = $input->getArgument('build');
 
-    $response = $client->get($config->api);
-    $server = $response->json();
+		switch( $commandAction ) {
+			case 'info':
+				$this->infoModpack($output, $modpackSlug, $modpackBuild);
+				break;
+			case 'get':
+				$this->getModpack($output, $modpackSlug, $modpackBuild);
+				break;
+			default:
+				throw new \InvalidArgumentException('Invalid arguments');
+		}
+	}
 
-    if( $slug != '' && $build == '' ) {
-      // Slug, No Build
-      $response = $client->get($config->api.'/modpack/'.$slug);
-      $json = $response->json();
+	private function infoModpack($output, $modpackSlug, $modpackBuild)
+	{
+		$apiClient = new Client();
+		$appConfig = solder_config();
 
-      if(isset($json['error'])) {
-        throw new \Exception($json['error']);
-      }
+		displayServerInfo($output);
 
-      $rows = array();
-      foreach( $json as $key => $value ) {
-        if( $key == 'builds' ) {
-          $rows[] = array("<info>$key</info>", implode($value,"\n"));
-        } else {
-          $rows[] = array("<info>$key</info>", $value);
-        }
-      }
+		if($modpackBuild == 'latest' || $modpackBuild == 'recommended') {
+			$apiResponse = $apiClient->get($appConfig->api.'/modpack/'.$modpackSlug)->json();
+			$modpackBuild = $apiResponse[$modpackBuild];
+		}
 
-      $output->writeln('<comment>Server:</comment>');
-      $output->writeln(" <info>{$server['api']}</info> version {$server['version']}");
-      $output->writeln(" {$config->api}");
+		if (  $modpackSlug == '' && $modpackBuild == ''  ) {
+			$apiUri = $appConfig->api.'/modpack';
+		} elseif( $modpackSlug != '' && $modpackBuild == '' ) {
+			$apiUri = $appConfig->api.'/modpack/'.$modpackSlug;
+		} else {
+			$apiUri = $appConfig->api.'/modpack/'.$modpackSlug.'/'.$modpackBuild;
+		}
 
-      $output->writeln('');
-      $output->writeln("<comment>Modpack:</comment>");
-      $table = new Table($output);
-      $table
-          ->setRows($rows)
-          ->setStyle('compact')
-          ->render();
+		$apiResponse = $apiClient->get($apiUri)->json();
+		if(isset($apiResponse['error'])) {
+			throw new \Exception($apiResponse['error']);
+		}
 
-    } elseif( $slug != '' && $build != '' ) {
-      // Slug With Build
-      if($build == 'latest' || $build == 'recommended') {
-        $response = $client->get($config->api.'/modpack/'.$slug);
-        $json = $response->json();
-        $build = $json[$build];
-      }
+		$rows = array();
+		$mods = array();
+		$modpacks = array();
+		foreach( $apiResponse as $key => $value ) {
+			if( $key == 'mods' ) {
+				foreach( $value as $mod) {
+					$mods[] = array("<info>{$mod['name']}</info>", $mod['version']);
+				}
+			} elseif( $key == 'modpacks' ) {
+				foreach( $value as $slug => $build) {
+					$modpacks[] = array("<info>{$slug}</info>", $build);
+				}
+			} elseif( is_array($value) ) {
+				$rows[] = array("<info>$key</info>", implode($value,"\n"));
+			} else {
+				$rows[] = array("<info>$key</info>", mb_strimwidth($value, 0, 60, "..."));
+			}
+		}
 
-      $response = $client->get($config->api.'/modpack/'.$slug.'/'.$build);
-      $json = $response->json();
+		if( $modpackSlug == '' && $modpackBuild == '') {
+			$output->writeln('');
+			$output->writeln('<comment>Available Modpacks:</comment>');
+			$table = new Table($output);
+			$table
+				->setRows($modpacks)
+				->setStyle('compact')
+				->render();
+		}
 
-      if(isset($json['error'])) {
-        throw new \Exception($json['error']);
-      }
+		if( $modpackSlug != '' && $modpackBuild == '' ) {
+			$output->writeln('');
+			$output->writeln("<comment>Modpack:</comment>");
+			$table = new Table($output);
+			$table
+				->setRows($rows)
+				->setStyle('compact')
+				->render();
+		}
 
-      $build = array();
-      $mods = array();
-      foreach( $json as $key => $value ) {
-        if( $key == 'mods' ) {
-          foreach( $value as $mod) {
-            $mods[] = array("<info>{$mod['name']}</info>", $mod['version']);
-          }
-        } else {
-          $build[] = array("<info>$key</info>", $value);
-        }
-      }
+		if( $modpackBuild != '' ) {
+			$output->writeln('');
+			$output->writeln('<comment>Build:</comment>');
+			$table = new Table($output);
+			$table
+				->setRows($rows)
+				->setStyle('compact')
+				->render();
 
-      $output->writeln('<comment>Server:</comment>');
-      $output->writeln(" <info>{$server['api']}</info> version {$server['version']}");
-      $output->writeln(" {$config->api}");
-
-      $output->writeln('');
-      $output->writeln('<comment>Build:</comment>');
-      $table = new Table($output);
-      $table
-          ->setRows($build)
-          ->setStyle('compact')
-          ->render();
-
-      $output->writeln('');
-      $output->writeln('<comment>Mods:</comment>');
-      $table = new Table($output);
-      $table
-          ->setRows($mods)
-          ->setStyle('compact')
-          ->render();
-
-
-    } else {
-      $response = $client->get($config->api.'/modpack');
-      $json = $response->json();
-
-      if(isset($json['error'])) {
-        throw new \Exception($json['error']);
-      }
-
-      $rows = array();
-      foreach( $json['modpacks'] as $slug => $name ) {
-        $rows[] = array("<info>$slug</info>", $name);
-      }
-
-      $output->writeln('<comment>Server:</comment>');
-      $output->writeln(" <info>{$server['api']}</info> version {$server['version']}");
-      $output->writeln(" {$config->api}");
-
-      $output->writeln('');
-      $output->writeln('<comment>Available Modpacks:</comment>');
-      $table = new Table($output);
-      $table
-          ->setRows($rows)
-          ->setStyle('compact')
-          ->render();
-    }
+			$output->writeln('');
+			$output->writeln('<comment>Mods:</comment>');
+			$table = new Table($output);
+			$table
+				->setRows($mods)
+				->setStyle('compact')
+				->render();
+		}
 
 	}
+
+	private function getModpack($output, $modpackSlug, $modpackBuild)
+	{
+		if($modpackSlug == '' || $modpackBuild == '') {
+			throw new \InvalidArgumentException('Invalid arguments');
+		}
+
+		$apiClient = new Client();
+		$appConfig = solder_config();
+
+		if($modpackBuild == 'latest' || $modpackBuild == 'recommended') {
+			$apiResponse = $apiClient->get($appConfig->api.'/modpack/'.$modpackSlug)->json();
+			$modpackBuild = $apiResponse[$modpackBuild];
+		}
+
+		$apiResponse = $apiClient->get($appConfig->api . '/modpack/' . $modpackSlug . '/' . $modpackBuild)->json();
+		if(isset($apiResponse['error'])) {
+			throw new \Exception($apiResponse['error']);
+		}
+
+		if(!is_dir($modpackSlug . '-' . $modpackBuild)){
+			$output->writeln("creating: $modpackSlug-$modpackBuild" . DIRECTORY_SEPARATOR);
+			mkdir($modpackSlug . '-' . $modpackBuild);
+		}
+
+		foreach( $apiResponse['mods'] as $mod ) {
+			$url = $mod['url'];
+			$filename = basename($url);
+			$md5 = $mod['md5'];
+			downloadFile($url, $modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename, $output, $md5);
+			unpackFile($modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename, $output);
+		}
+	}
+
 
 }
