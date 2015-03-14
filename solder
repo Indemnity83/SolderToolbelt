@@ -91,11 +91,9 @@ function human_filesize($bytes, $decimals = 2)
 
 $app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
 
-$app->add(new Indemnity83\SolderToolbelt\EditCommand);
-$app->add(new Indemnity83\SolderToolbelt\InfoCommand);
+$app->add(new Indemnity83\SolderToolbelt\ConfigCommand);
 $app->add(new Indemnity83\SolderToolbelt\InitCommand);
 $app->add(new Indemnity83\SolderToolbelt\ModCommand);
 $app->add(new Indemnity83\SolderToolbelt\ModpackCommand);
-$app->add(new Indemnity83\SolderToolbelt\PackCommand);
 
 $app->run();
