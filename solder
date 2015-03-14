@@ -83,6 +83,22 @@ function downloadFile($srcName, $dstName, $output, $md5 = false, $chunkSize = 10
 	fclose($handle);
 }
 
+function unpackFile($zipFile, $extractTo = false)
+{
+	$zip = new \ZipArchive;
+
+	if( $extractTo == false ) {
+		$extractTo = dirname($zipFile);
+	}
+
+	$zip->open($zipFile);
+	$zip->extractTo($extractTo);
+	$zip->close();
+	$zip = null;
+
+	unlink($zipFile);
+}
+
 function human_filesize($bytes, $decimals = 2)
 {
 	$size = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');

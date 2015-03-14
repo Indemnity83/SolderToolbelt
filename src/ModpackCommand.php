@@ -53,6 +53,9 @@ class ModpackCommand extends Command {
 			case 'info':
 				$this->infoModpack($output, $modpackSlug, $modpackBuild);
 				break;
+			case 'get':
+				$this->getModpack($output, $modpackSlug, $modpackBuild);
+				break;
 			default:
 				throw new \InvalidArgumentException('Invalid arguments');
 		}
@@ -141,5 +144,39 @@ class ModpackCommand extends Command {
 		}
 
 	}
+
+	private function getModpack($output, $modpackSlug, $modpackBuild)
+	{
+		if($modpackSlug == '' || $modpackBuild == '') {
+			throw new \InvalidArgumentException('Invalid arguments');
+		}
+
+		$apiClient = new Client();
+		$appConfig = solder_config();
+
+		if($modpackBuild == 'latest' || $modpackBuild == 'recommended') {
+			$apiResponse = $apiClient->get($appConfig->api.'/modpack/'.$modpackSlug)->json();
+			$modpackBuild = $apiResponse[$modpackBuild];
+		}
+
+		$apiResponse = $apiClient->get($appConfig->api . '/modpack/' . $modpackSlug . '/' . $modpackBuild)->json();
+		if(isset($apiResponse['error'])) {
+			throw new \Exception($apiResponse['error']);
+		}
+
+		if(!is_dir($modpackSlug . '-' . $modpackBuild)){
+			$output->writeln("creating: $modpackSlug-$modpackBuild" . DIRECTORY_SEPARATOR);
+			mkdir($modpackSlug . '-' . $modpackBuild);
+		}
+
+		foreach( $apiResponse['mods'] as $mod ) {
+			$url = $mod['url'];
+			$filename = basename($url);
+			$md5 = $mod['md5'];
+			downloadFile($url, $modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename, $output, $md5);
+			unpackFile($modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename);
+		}
+	}
+
 
 }
