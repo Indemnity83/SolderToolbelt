@@ -121,7 +121,6 @@ function slug($str, $replace=array(), $delimiter='-')
 	return $clean;
 }
 
-$app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
 function displayServerInfo($output)
 {
 	$apiClient = new Client();
@@ -141,6 +140,7 @@ function displayServerInfo($output)
 	$technicSolder = null;
 }
 
+$app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.1');
 
 $app->add(new Indemnity83\SolderToolbelt\ConfigCommand);
 $app->add(new Indemnity83\SolderToolbelt\InitCommand);
