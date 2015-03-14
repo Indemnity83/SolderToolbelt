@@ -74,23 +74,27 @@ class ModCommand extends Command {
 	{
 		$zip = new \ZipArchive;
 		if ($zip->open($modFile) === TRUE) {
-			$mcmod = json_decode($zip->getFromName('mcmod.info'), true);
+			$modList = json_decode($zip->getFromName('mcmod.info'));
 			$zip->close();
 		} else {
 			throw new \OutOfBoundsException('Could not identify mod');
 		}
 
-		foreach( $mcmod as $submod ) {
+		if( isset($modList->modlist)) {
+			$modList = $modList->modlist;
+		}
+
+		foreach( $modList as $mod ) {
 			$output->writeln('');
 			$rows = array();
-			foreach( $submod as $key => $value ) {
+			foreach( $mod as $key => $value ) {
 				if( is_array($value) ) {
 					$rows[] = array("<info>$key</info>", implode($value,"\n"));
 				} else {
 					$rows[] = array("<info>$key</info>", mb_strimwidth($value, 0, 60, "..."));
 				}
 			}
-			$output->writeln("<comment>{$submod['name']}:</comment>");
+			$output->writeln("<comment>{$mod->name}:</comment>");
 			$table = new Table($output);
 			$table
 					->setRows($rows)
@@ -168,6 +172,10 @@ class ModCommand extends Command {
 			$zip->close();
 		} else {
 			throw new \OutOfBoundsException('Could not identify mod');
+		}
+
+		if( isset($modList->modlist)) {
+			$modList = $modList->modlist;
 		}
 
 		if( count($modList) > 1 ) {
