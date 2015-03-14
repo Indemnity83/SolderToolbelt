@@ -132,8 +132,8 @@ function displayServerInfo($output)
 	}
 
 	$output->writeln('<comment>Server:</comment>');
-	$output->writeln(" <info>{$technicSolder['api']}</info> version {$technicSolder['version']}");
-	$output->writeln(" {$appConfig->api}");
+	$output->writeln(" <info>{$technicSolder['api']}</info> {$technicSolder['version']}");
+	$output->writeln(" <info>url</info> {$appConfig->api}");
 
 	$apiClient = null;
 	$appConfig = null;
