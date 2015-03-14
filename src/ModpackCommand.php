@@ -22,7 +22,7 @@ class ModpackCommand extends Command {
 			->addArgument(
 				'action',
 				InputArgument::REQUIRED,
-				'list, get'
+				'info, get'
 			)
 			->addArgument(
 				'slug',

@@ -89,6 +89,20 @@ function human_filesize($bytes, $decimals = 2)
 	return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$size[$factor];
 }
 
+function slug($str, $replace=array(), $delimiter='-')
+{
+	if( !empty($replace) ) {
+		$str = str_replace((array)$replace, ' ', $str);
+	}
+
+	$clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
+	$clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
+	$clean = strtolower(trim($clean, '-'));
+	$clean = preg_replace("/[\/_|+ -]+/", $delimiter, $clean);
+
+	return $clean;
+}
+
 $app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
 
 $app->add(new Indemnity83\SolderToolbelt\ConfigCommand);
