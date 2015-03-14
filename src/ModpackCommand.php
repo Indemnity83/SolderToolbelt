@@ -63,10 +63,7 @@ class ModpackCommand extends Command {
 		$apiClient = new Client();
 		$appConfig = solder_config();
 
-		$output->writeln('<comment>Server:</comment>');
-		$technicSolder = $apiClient->get($appConfig->api)->json();
-		$output->writeln(" <info>{$technicSolder['api']}</info> version {$technicSolder['version']}");
-		$output->writeln(" {$appConfig->api}");
+		displayServerInfo($output);
 
 		if($modpackBuild == 'latest' || $modpackBuild == 'recommended') {
 			$apiResponse = $apiClient->get($appConfig->api.'/modpack/'.$modpackSlug)->json();
@@ -143,25 +140,6 @@ class ModpackCommand extends Command {
 				->render();
 		}
 
-	}
-
-	private function displayServerInfo($output)
-	{
-		$apiClient = new Client();
-		$appConfig = solder_config();
-
-		$technicSolder = $apiClient->get($appConfig->api)->json();
-		if(isset($technicSolder['error'])) {
-			throw new \Exception($technicSolder['error']);
-		}
-
-		$output->writeln('<comment>Server:</comment>');
-		$output->writeln(" <info>{$technicSolder['api']}</info> version {$technicSolder['version']}");
-		$output->writeln(" {$appConfig->api}");
-
-		$apiClient = null;
-		$appConfig = null;
-		$technicSolder = null;
 	}
 
 }

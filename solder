@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
 
+use GuzzleHttp\Client;
 use Symfony\Component\Console\Helper\ProgressBar;
 
 if (file_exists(__DIR__.'/vendor/autoload.php'))
@@ -104,6 +105,25 @@ function slug($str, $replace=array(), $delimiter='-')
 }
 
 $app = new Symfony\Component\Console\Application('Solder Toolbelt', '0.2.0');
+function displayServerInfo($output)
+{
+	$apiClient = new Client();
+	$appConfig = solder_config();
+
+	$technicSolder = $apiClient->get($appConfig->api)->json();
+	if(isset($technicSolder['error'])) {
+		throw new \Exception($technicSolder['error']);
+	}
+
+	$output->writeln('<comment>Server:</comment>');
+	$output->writeln(" <info>{$technicSolder['api']}</info> version {$technicSolder['version']}");
+	$output->writeln(" {$appConfig->api}");
+
+	$apiClient = null;
+	$appConfig = null;
+	$technicSolder = null;
+}
+
 
 $app->add(new Indemnity83\SolderToolbelt\ConfigCommand);
 $app->add(new Indemnity83\SolderToolbelt\InitCommand);

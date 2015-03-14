@@ -107,7 +107,7 @@ class ModCommand extends Command {
 
 	private function infoModApi($output, $slug, $version)
 	{
-		$this->displayServerInfo($output);
+		displayServerInfo($output);
 
 		$apiClient = new Client();
 		$appConfig = solder_config();
@@ -234,25 +234,6 @@ class ModCommand extends Command {
 			throw new \OutOfBoundsException('Could not write to file');
 		}
 
-	}
-
-	private function displayServerInfo($output)
-	{
-		$apiClient = new Client();
-		$appConfig = solder_config();
-
-		$technicSolder = $apiClient->get($appConfig->api)->json();
-		if(isset($technicSolder['error'])) {
-			throw new \Exception($technicSolder['error']);
-		}
-
-		$output->writeln('<comment>Server:</comment>');
-		$output->writeln(" <info>{$technicSolder['api']}</info> version {$technicSolder['version']}");
-		$output->writeln(" {$appConfig->api}");
-
-		$apiClient = null;
-		$appConfig = null;
-		$technicSolder = null;
 	}
 
 }
