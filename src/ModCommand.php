@@ -24,7 +24,7 @@ class ModCommand extends Command {
 			->addArgument(
 					'action',
 					InputArgument::REQUIRED,
-					'info, get, pack'
+					'info, get, pack, put'
 				)
 			->addArgument(
 				 'mod',
@@ -64,6 +64,9 @@ class ModCommand extends Command {
 				break;
 			case 'pack':
 				$this->packModFile($input, $output, realpath($modName));
+				break;
+			case 'put':
+				$this->putMod($input, $output, realpath($modName));
 				break;
 			default:
 				throw new \InvalidArgumentException('Invalid arguments');
@@ -234,6 +237,117 @@ class ModCommand extends Command {
 		} else {
 			throw new \OutOfBoundsException('Could not write to file');
 		}
+	}
+
+	private function putMod($input, $output, $modFile)
+	{
+		$helper = $this->getHelper('question');
+		$zip = new \ZipArchive;
+
+		if ($zip->open($modFile) === TRUE) {
+			$modList = json_decode($zip->getFromName('mcmod.info'));
+			$zip->close();
+		} else {
+			throw new \OutOfBoundsException('Could not identify mod');
+		}
+
+		if( isset($modList->modlist)) {
+			$modList = $modList->modlist;
+		}
+
+		if( count($modList) > 1 ) {
+			$options = array();
+			foreach( $modList as $mod ) {
+				$options[] = $mod->name;
+			}
+
+			$question = new ChoiceQuestion(
+				"Mod List contains multiple definitions, please select the defintion to be used (default is `{$options[0]}`) ",
+				$options,
+				'0'
+			);
+			$question->setErrorMessage('%s is invalid.');
+			$response = $helper->ask($input, $output, $question);
+			$modsRow = array_search($response, $options);
+			$output->writeln('');
+		} else {
+			$modsRow = 0;
+		}
+
+		if( isset($modList[$modsRow]->name) ) {
+			$modName = $modList[$modsRow]->name;
+		} else {
+			$question = new Question('Mod Name: ');
+			$modName = $helper->ask($input, $output, $question);
+		}
+
+		if( isset($modList[$modsRow]->version) ) {
+			$modVersion = $modList[$modsRow]->version;
+		} else {
+			$question = new Question('Mod Version: ');
+			$modVersion = $helper->ask($input, $output, $question);
+		}
+
+		if( isset($modList[$modsRow]->mcversion) ) {
+			$mcVersion = $modList[$modsRow]->mcversion;
+		} else {
+			$question = new Question('Minecraft Version: ');
+			$mcVersion = $helper->ask($input, $output, $question);
+		}
+
+		if( isset($modList[$modsRow]->authors) ) {
+			$modAuthors = implode($modList[$modsRow]->authors, ', ');
+		} else {
+			$question = new Question('Mod Author(s): ');
+			$modAuthors = $helper->ask($input, $output, $question);
+		}
+
+		if( isset($modList[$modsRow]->description) ) {
+			$modDescription = $modList[$modsRow]->description;
+		} else {
+			$question = new Question('Mod Description: ');
+			$modDescription = $helper->ask($input, $output, $question);
+		}
+
+		if( isset($modList[$modsRow]->url) ) {
+			$modWebsite = $modList[$modsRow]->url;
+		} else {
+			$question = new Question('Mod Website: ');
+			$modWebsite = $helper->ask($input, $output, $question);
+		}
+
+		$modSlug = slug($modName);
+		$packName = $modSlug . '-' . $mcVersion  . '-' . $modVersion;
+		$fileName = $modSlug . DIRECTORY_SEPARATOR . $packName . '.zip';
+
+		$apiClient = new Client();
+		$appConfig = solder_config();
+		$appHost = parse_url($appConfig->api)['host'];
+		$apiResponse = $apiClient->get($appConfig->api . '/mod/' . $modSlug . '/' . $mcVersion . '-' . $modVersion)->json();
+		if (!isset($apiResponse['error'])) {
+			throw new \Exception('Mod version already exists');
+		} elseif (isset($apiResponse['error']) && $apiResponse['error'] == 'Mod does not exist') {
+			$output->writeln("   adding: $modName to $appHost");
+		} elseif (isset($apiResponse['error']) && $apiResponse['error'] == 'Mod version does not exist') {
+			// no op, we want this situation
+		} elseif (isset($apiResponse['error'])) {
+			throw new \Exception($apiResponse['error']);
+		}
+
+		if(!is_dir($modSlug)){
+			$output->writeln("   creating: $modSlug" . DIRECTORY_SEPARATOR);
+			mkdir($modSlug);
+		}
+
+		if ($zip->open($fileName, \ZipArchive::OVERWRITE) === TRUE) {
+			$output->writeln("   deflating: " . basename($modFile));
+			$zip->addFile($modFile, 'mods' . DIRECTORY_SEPARATOR . basename($modFile));
+			$zip->close();
+		} else {
+			throw new \OutOfBoundsException('Could not write to file');
+		}
+
+		$output->writeln("   uploading: $modName $mcVersion-$modVersion to $appHost");
 
 	}
 
