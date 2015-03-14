@@ -77,19 +77,20 @@ function downloadFile($srcName, $dstName, $output, $md5 = false, $chunkSize = 10
 	}
 
 	$output->writeln("$hash `$dstName` saved [$bytesCount/$filesize] $checksum");
-	$output->writeln('');
 
 	fclose($fp);
 	fclose($handle);
 }
 
-function unpackFile($zipFile, $extractTo = false)
+function unpackFile($zipFile, $output, $extractTo = false)
 {
 	$zip = new \ZipArchive;
 
 	if( $extractTo == false ) {
 		$extractTo = dirname($zipFile);
 	}
+
+	$output->writeln("unpacking $zipFile to $extractTo");
 
 	$zip->open($zipFile);
 	$zip->extractTo($extractTo);

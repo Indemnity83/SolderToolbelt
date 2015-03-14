@@ -174,7 +174,7 @@ class ModpackCommand extends Command {
 			$filename = basename($url);
 			$md5 = $mod['md5'];
 			downloadFile($url, $modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename, $output, $md5);
-			unpackFile($modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename);
+			unpackFile($modpackSlug . '-' . $modpackBuild . DIRECTORY_SEPARATOR . $filename, $output);
 		}
 	}
 

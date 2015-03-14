@@ -154,6 +154,7 @@ class ModCommand extends Command {
 		$md5 = $apiResponse['md5'];
 
 		downloadFile($url, $filename, $output, $md5);
+		$output->writeln('');
 
 		if( md5_file($filename) != $md5 ) {
 			throw new \Exception('Hash dosen\'t match');
