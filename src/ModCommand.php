@@ -162,8 +162,6 @@ class ModCommand extends Command {
 
 	private function packModFile($input, $output, $modFile)
 	{
-		$output->writeln('');
-
 		$helper = $this->getHelper('question');
 		$zip = new \ZipArchive;
 
@@ -221,12 +219,15 @@ class ModCommand extends Command {
 		$modSlug = slug($modName);
 		$packName = $modSlug . '-' . $mcVersion  . '-' . $modVersion;
 		$fileName = $modSlug . DIRECTORY_SEPARATOR . $packName . '.zip';
+		$output->writeln("Archive: $packName.zip");
 
 		if(!is_dir($modSlug)){
+			$output->writeln("   creating: $modSlug" . DIRECTORY_SEPARATOR);
 			mkdir($modSlug);
 		}
 
 		if ($zip->open($fileName, \ZipArchive::OVERWRITE) === TRUE) {
+			$output->writeln("   deflating: " . basename($modFile));
 			$zip->addFile($modFile, 'mods' . DIRECTORY_SEPARATOR . basename($modFile));
 			$zip->close();
 		} else {
