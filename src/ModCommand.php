@@ -328,6 +328,18 @@ class ModCommand extends Command {
 			throw new \Exception('Mod version already exists');
 		} elseif (isset($apiResponse['error']) && $apiResponse['error'] == 'Mod does not exist') {
 			$output->writeln("   adding: $modName to $appHost");
+			$request = $apiClient->createRequest('POST', $appConfig->api . '/mod/');
+			$postBody = $request->getBody();
+			$postBody->setField('name', $modSlug);
+			$postBody->setField('pretty_name', $modName);
+			$postBody->setField('author', $modAuthors);
+			$postBody->setField('description', $modDescription);
+			$postBody->setField('link', $modWebsite);
+			$response = $apiClient->send($request);
+			if(isset($technicSolder['error'])) {
+				throw new \Exception($technicSolder['error']);
+			}
+
 		} elseif (isset($apiResponse['error']) && $apiResponse['error'] == 'Mod version does not exist') {
 			// no op, we want this situation
 		} elseif (isset($apiResponse['error'])) {
