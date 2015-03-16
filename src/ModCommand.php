@@ -1,6 +1,8 @@
 <?php namespace Indemnity83\SolderToolbelt;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Post\PostFile;
+use GuzzleHttp\Event\ProgressEvent;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -221,7 +223,7 @@ class ModCommand extends Command {
 		}
 
 		$modSlug = slug($modName);
-		$packName = $modSlug . '-' . $mcVersion  . '-' . $modVersion;
+		$packName = $modSlug . '-' . $mcVersion . '-' . $modVersion;
 		$fileName = $modSlug . DIRECTORY_SEPARATOR . $packName . '.zip';
 		$output->writeln("Archive: $packName.zip");
 
@@ -317,7 +319,7 @@ class ModCommand extends Command {
 		}
 
 		$modSlug = slug($modName);
-		$packName = $modSlug . '-' . $mcVersion  . '-' . $modVersion;
+		$packName = $modSlug . '-' . $mcVersion . '-' . $modVersion;
 		$fileName = $modSlug . DIRECTORY_SEPARATOR . $packName . '.zip';
 
 		$apiClient = new Client();
@@ -335,9 +337,9 @@ class ModCommand extends Command {
 			$postBody->setField('author', $modAuthors);
 			$postBody->setField('description', $modDescription);
 			$postBody->setField('link', $modWebsite);
-			$response = $apiClient->send($request);
-			if(isset($technicSolder['error'])) {
-				throw new \Exception($technicSolder['error']);
+			$response = $apiClient->send($request)->json();
+			if(isset($response['error'])) {
+				throw new \Exception($response['error']);
 			}
 
 		} elseif (isset($apiResponse['error']) && $apiResponse['error'] == 'Mod version does not exist') {
@@ -360,6 +362,17 @@ class ModCommand extends Command {
 		}
 
 		$output->writeln("   uploading: $modName $mcVersion-$modVersion to $appHost");
+		$request = $apiClient->createRequest('POST', $appConfig->api . '/mod/' . $modSlug);
+		$postBody = $request->getBody();
+		$postBody->setField('version', $mcVersion . '-' . $modVersion);
+		$postBody->addFile(new PostFile('file', fopen($fileName, 'r')));
+		$request->getEmitter()->on('progress', function (ProgressEvent $e) {
+			echo '   progress ' . $e->uploaded . ' of ' . $e->uploadSize . "\r";
+		});
+		$response = $apiClient->send($request)->json();
+		if(isset($response['error'])) {
+			throw new \Exception($response['error']);
+		}
 
 	}
 
