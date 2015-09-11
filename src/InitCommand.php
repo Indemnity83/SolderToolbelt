@@ -27,17 +27,23 @@ class InitCommand extends Command {
 	 */
 	public function execute(InputInterface $input, OutputInterface $output)
 	{
-		if (is_dir(solder_path()))
-		{
+		if (!is_dir(solder_path())) {
+			mkdir(solder_path());
+		}
+
+		if(is_file(solder_path().'/Solder.json')){
 			throw new \InvalidArgumentException("Solder has already been initialized.");
 		}
 
-		$output->writeln('<comment>Creating Solder.json file...</comment> <info>✔</info>');
+		$output->write('<comment>Creating Solder.json file...</comment> ');
 
-		mkdir(solder_path());
-		copy(__DIR__.'/stubs/Solder.json', solder_path().'/Solder.json');
-
-		$output->writeln('<comment>Solder.json file created at:</comment> '.solder_path().'/Solder.json');
+		if( copy(__DIR__.'/stubs/Solder.json', solder_path().'/Solder.json') ){
+			$output->writeln('<info>✔</info>');
+			$output->writeln('<comment>Solder.json file created at:</comment> '.solder_path().'/Solder.json');
+		} else {
+			$output->writeln('<fg=red>✘</>');
+			$output->writeln('<error>Could not write Solder.json to: '.solder_path().'/Solder.json</error>');
+		}
 	}
 
 }
