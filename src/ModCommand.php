@@ -28,7 +28,7 @@ class ModCommand extends Command {
 				)
 			->addArgument(
 				 'mod',
-				 InputArgument::REQUIRED,
+				 InputArgument::OPTIONAL,
 				 'The filename or slug of the mod you wish to request'
 			)
 			->addArgument(
@@ -53,7 +53,7 @@ class ModCommand extends Command {
 
 		switch( $commandAction ) {
 			case 'info':
-				if( file_exists(realpath($modName)) ) {
+				if( $modName != '' && file_exists(realpath($modName)) ) {
 					$this->infoModFile($output, realpath($modName));
 				} else {
 					$this->infoModApi($output, $modName, $modVersion);
@@ -117,17 +117,25 @@ class ModCommand extends Command {
 			throw new \Exception($apiResponse['error']);
 		}
 
+		$output->writeln('');
+
 		$rows = array();
-		foreach( $apiResponse as $key => $value ) {
-			if( $key == 'versions' ) {
-				$rows[] = array("<info>$key</info>", implode($value,"\n"));
-			} else {
+		if (empty($slug)) {
+			foreach( $apiResponse['mods'] as $key => $value ) {
 				$rows[] = array("<info>$key</info>", mb_strimwidth($value, 0, 60, "..."));
 			}
+			$output->writeln("<comment>Available Mods:</comment>");
+		} else {
+			foreach( $apiResponse as $key => $value ) {
+				if( $key == 'versions' ) {
+					$rows[] = array("<info>$key</info>", implode($value,"\n"));
+				} else {
+					$rows[] = array("<info>$key</info>", mb_strimwidth($value, 0, 60, "..."));
+				}
+			}
+			$output->writeln("<comment>Mod:</comment>");
 		}
 
-		$output->writeln('');
-		$output->writeln("<comment>Mod:</comment>");
 		$table = new Table($output);
 		$table
 				->setRows($rows)
