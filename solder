@@ -21,7 +21,7 @@ function solder_path()
 	}
 	else
 	{
-		return $_SERVER['HOMEDRIVE'].$_SERVER['HOMEPATH'].'.solder-toolbelt';
+		return $_SERVER['HOMEDRIVE'].$_SERVER['HOMEPATH'].'/.solder-toolbelt';
 	}
 }
 
