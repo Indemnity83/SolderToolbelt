@@ -4,6 +4,7 @@ use GuzzleHttp\Client;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
@@ -33,6 +34,12 @@ class ModpackCommand extends Command {
 				'build',
 				InputArgument::OPTIONAL,
 				'Specific build you wish to view'
+			)
+			->addOption(
+				'server',
+				null,
+				InputOption::VALUE_NONE,
+				'target queries for server modpacks'
 			);
 	}
 
@@ -48,25 +55,28 @@ class ModpackCommand extends Command {
 		$commandAction = $input->getArgument('action');
 		$modpackSlug = $input->getArgument('slug');
 		$modpackBuild = $input->getArgument('build');
+		$server = $input->getOption('server');
 
 		switch( $commandAction ) {
 			case 'info':
-				$this->infoModpack($output, $modpackSlug, $modpackBuild);
+				$this->infoModpack($output, $modpackSlug, $modpackBuild, $server);
 				break;
 			case 'get':
-				$this->getModpack($output, $modpackSlug, $modpackBuild);
+				$this->getModpack($output, $modpackSlug, $modpackBuild, $server);
 				break;
 			default:
 				throw new \InvalidArgumentException('Invalid arguments');
 		}
 	}
 
-	private function infoModpack($output, $modpackSlug, $modpackBuild)
+	private function infoModpack($output, $modpackSlug, $modpackBuild, $server)
 	{
 		$apiClient = new Client();
 		$appConfig = solder_config();
 
 		displayServerInfo($output);
+
+		$target = $server ? 'server' : 'client';
 
 		if($modpackBuild == 'latest' || $modpackBuild == 'recommended') {
 			$apiResponse = $apiClient->get($appConfig->api.'/modpack/'.$modpackSlug)->json();
@@ -78,7 +88,7 @@ class ModpackCommand extends Command {
 		} elseif( $modpackSlug != '' && $modpackBuild == '' ) {
 			$apiUri = $appConfig->api.'/modpack/'.$modpackSlug;
 		} else {
-			$apiUri = $appConfig->api.'/modpack/'.$modpackSlug.'/'.$modpackBuild;
+			$apiUri = $appConfig->api.'/modpack/'.$modpackSlug.'/'.$modpackBuild.'/'.$target;
 		}
 
 		$apiResponse = $apiClient->get($apiUri)->json();
@@ -145,7 +155,7 @@ class ModpackCommand extends Command {
 
 	}
 
-	private function getModpack($output, $modpackSlug, $modpackBuild)
+	private function getModpack($output, $modpackSlug, $modpackBuild, $server)
 	{
 		if($modpackSlug == '' || $modpackBuild == '') {
 			throw new \InvalidArgumentException('Invalid arguments');
@@ -159,7 +169,7 @@ class ModpackCommand extends Command {
 			$modpackBuild = $apiResponse[$modpackBuild];
 		}
 
-		$apiResponse = $apiClient->get($appConfig->api . '/modpack/' . $modpackSlug . '/' . $modpackBuild)->json();
+		$apiResponse = $apiClient->get($appConfig->api . '/modpack/' . $modpackSlug . '/' . $modpackBuild . '/' . $target)->json();
 		if(isset($apiResponse['error'])) {
 			throw new \Exception($apiResponse['error']);
 		}
