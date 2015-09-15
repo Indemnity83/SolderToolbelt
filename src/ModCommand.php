@@ -173,9 +173,24 @@ class ModCommand extends Command {
 	{
 		$helper = $this->getHelper('question');
 		$zip = new \ZipArchive;
+		// set this if the file belongs in "bin/modpack.jar"
+		$isModpackJar = false;
 
 		if ($zip->open($modFile) === TRUE) {
-			$modList = json_decode($zip->getFromName('mcmod.info'));
+			// check for forge
+			// @TODO: If fmlversion.properties ever reports the correct forge version, use that instead.
+			$forgeData = json_decode($zip->getFromName('version.json'));
+			if($forgeData && isset($forgeData->id) && strpos($forgeData->id, "Forge") !== FALSE){
+				$modList = array( new \stdClass() );
+				$forgeInfo = explode("-", $forgeData->id);
+				$modList[0]->mcversion = $forgeInfo[0];
+				$modList[0]->version = explode("Forge", $forgeInfo[1])[1];
+				$modList[0]->name = "Forge";
+				unset($forgeInfo);
+				$isModpackJar = TRUE;
+			} else {
+				$modList = json_decode($zip->getFromName('mcmod.info'));
+			}
 			$zip->close();
 		} else {
 			throw new \OutOfBoundsException('Could not identify mod');
@@ -237,7 +252,11 @@ class ModCommand extends Command {
 
 		if ($zip->open($fileName, \ZipArchive::OVERWRITE) === TRUE) {
 			$output->writeln("   deflating: " . basename($modFile));
-			$zip->addFile($modFile, 'mods' . DIRECTORY_SEPARATOR . basename($modFile));
+			if($isModpackJar){
+				$zip->addFile($modFile, 'bin' . DIRECTORY_SEPARATOR . 'modpack.jar');
+			} else {
+				$zip->addFile($modFile, 'mods' . DIRECTORY_SEPARATOR . basename($modFile));
+			}
 			$zip->close();
 		} else {
 			throw new \OutOfBoundsException('Could not write to file');
