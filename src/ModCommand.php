@@ -181,6 +181,7 @@ class ModCommand extends Command {
 			// @TODO: If fmlversion.properties ever reports the correct forge version, use that instead.
 			$forgeData = json_decode($zip->getFromName('version.json'));
 			if($forgeData && isset($forgeData->id) && strpos($forgeData->id, "Forge") !== FALSE){
+				$output->write("Decoding: version.json (Forge)");
 				$modList = array( new \stdClass() );
 				$forgeInfo = explode("-", $forgeData->id);
 				$modList[0]->mcversion = $forgeInfo[0];
@@ -189,15 +190,48 @@ class ModCommand extends Command {
 				unset($forgeInfo);
 				$isModpackJar = TRUE;
 			} else {
-				$modList = json_decode($zip->getFromName('mcmod.info'));
+				if ($zip->locateName('mcmod.info') !== false) {
+					$output->write("Decoding: mcmod.info (Standard Mod)");
+					$modList = json_decode($zip->getFromName('mcmod.info'));
+				}
+
+				if ($zip->locateName('cccmod.info') !== false) {
+					$output->write("Decoding: cccmod.info (CodeChickenCore)");
+					$modList = json_decode($zip->getFromName('cccmod.info'));
+				}
 			}
 			$zip->close();
+
+			if( isset($modList->modList)) {
+				$output->write(' Version 2');
+				$modList = $modList->modList;
+			}
+
+			switch (json_last_error()) {
+					case JSON_ERROR_NONE:
+							$output->writeln(' - No errors');
+					break;
+					case JSON_ERROR_DEPTH:
+							$output->writeln(' - Maximum stack depth exceeded');
+					break;
+					case JSON_ERROR_STATE_MISMATCH:
+							$output->writeln(' - Underflow or the modes mismatch');
+					break;
+					case JSON_ERROR_CTRL_CHAR:
+							$output->writeln(' - Unexpected control character found');
+					break;
+					case JSON_ERROR_SYNTAX:
+							$output->writeln(' - Syntax error, malformed JSON');
+					break;
+					case JSON_ERROR_UTF8:
+							$output->writeln(' - Malformed UTF-8 characters, possibly incorrectly encoded');
+					break;
+					default:
+							$output->writeln(' - Unknown error');
+					break;
+			}
 		} else {
 			throw new \OutOfBoundsException('Could not identify mod');
-		}
-
-		if( isset($modList->modlist)) {
-			$modList = $modList->modlist;
 		}
 
 		if( count($modList) > 1 ) {
